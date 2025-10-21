@@ -118,6 +118,9 @@ classdef GitHubUpdateManager < handle
             success = false;
             
             try
+                % Set up cleanup to always run
+                cleanup = onCleanup(@() obj.cleanupProgress());
+
                 % Filter and select assets
                 obj.SelectedAssets = obj.selectAssets(obj.LatestRelease.assets);
                 
@@ -134,33 +137,24 @@ classdef GitHubUpdateManager < handle
                 % Show download progress
                 progressDlg = obj.showProgressDialog('Downloading update...');
                 
-                try
-                    % Check if user cancelled before starting download
-                    if obj.isProgressCancelled(progressDlg)
-                        fprintf('Download cancelled by user\n');
-                        return;
-                    end
-                    
-                    % Download assets
-                    obj.DownloadedFiles = obj.downloadAssets(obj.SelectedAssets, progressDlg);
-                    
-                    % Check if user cancelled during download
-                    if obj.isProgressCancelled(progressDlg)
-                        fprintf('Download cancelled by user\n');
-                        return;
-                    end
-                    
-                    % Process downloaded files
-                    if ~isempty(obj.DownloadedFiles)
-                        success = obj.processDownloadedFiles(obj.DownloadedFiles);
-                    end
-                    
-                finally
-                    % Simple cleanup - just close the progress dialog
-                    if exist('progressDlg', 'var') && isvalid(progressDlg)
-                        close(progressDlg);
-                        delete(obj.progressFig);
-                    end
+                % Check if user cancelled before starting download
+                if obj.isProgressCancelled(progressDlg)
+                    fprintf('Download cancelled by user\n');
+                    return;
+                end
+                
+                % Download assets
+                obj.DownloadedFiles = obj.downloadAssets(obj.SelectedAssets, progressDlg);
+                
+                % Check if user cancelled during download
+                if obj.isProgressCancelled(progressDlg)
+                    fprintf('Download cancelled by user\n');
+                    return;
+                end
+                
+                % Process downloaded files
+                if ~isempty(obj.DownloadedFiles)
+                    success = obj.processDownloadedFiles(obj.DownloadedFiles);
                 end
                 
                 if success
@@ -173,6 +167,19 @@ classdef GitHubUpdateManager < handle
             catch ME
                 obj.showErrorDialog('Update Failed', ME.message);
                 fprintf('❌ Update failed: %s\n', ME.message);
+            end
+        end
+
+        function cleanupProgress(obj)
+            % Properly cleanup the progress figure if it exists
+            if isprop(obj, 'progressFig') && ~isempty(obj.progressFig) && isvalid(obj.progressFig)
+                try
+                    close(obj.progressFig);
+                    delete(obj.progressFig);
+                    obj.progressFig = [];  % Clear the reference
+                catch
+                    % Silent fail if already deleted
+                end
             end
         end
     end
@@ -533,29 +540,6 @@ classdef GitHubUpdateManager < handle
                     'ButtonPushedFcn', @(~,~) selectAndClose());
                 
                 uiwait(fig);
-                % fig = uifigure('Name', 'Select Files to Download', ...
-                %               'Position', [100 100 500 400], ...
-                %               'WindowStyle', 'modal');
-                % 
-                % % Use absolute positioning
-                % uilabel(fig, 'Position', [20 350 460 30], ...
-                %        'Text', 'Select files to download:', ...
-                %        'FontSize', 12, ...
-                %        'HorizontalAlignment', 'left');
-                % 
-                % % Create listbox with asset names
-                % assetNames = {assets.name};
-                % listbox = uilistbox(fig, 'Position', [20 60 460 270], ...
-                %                    'Items', assetNames, ...
-                %                    'Multiselect', 'on', ...
-                %                    'Value', assetNames);
-                % 
-                % % OK button - made wider and centered
-                % uibutton(fig, 'Position', [175 15 150 35], ...
-                %         'Text', 'Download Selected', ...
-                %         'ButtonPushedFcn', @(~,~) selectAndClose());
-                % 
-                % uiwait(fig);
                 
             catch
                 % Fallback: select all assets
@@ -573,7 +557,14 @@ classdef GitHubUpdateManager < handle
         function dlg = showProgressDialog(obj, message)
             % Show progress dialog during download
             try
-                obj.progressFig = uifigure('Name', 'Download progress','Visible','on');
+                screenSize = get(0, 'ScreenSize');
+                figW = 500;
+                figH = 400;
+                figX = (screenSize(3) - figW) / 2;
+                figY = (screenSize(4) - figH) / 2;
+                obj.progressFig = uifigure('Name', 'Download progress','Visible','on',...
+                                            'Position', [figX, figY, figW, figH], ...
+                                            'WindowStyle', 'modal');
                 dlg = uiprogressdlg(obj.progressFig, 'Title', obj.AppName, ...
                                    'Message', message, ...
                                    'Indeterminate', 'on', ...
@@ -607,8 +598,15 @@ classdef GitHubUpdateManager < handle
         function showSuccessDialog(obj)
             % Show success message
             try
+                screenSize = get(0, 'ScreenSize');
+                figW = 500;
+                figH = 400;
+                figX = (screenSize(3) - figW) / 2;
+                figY = (screenSize(4) - figH) / 2;
                 % Create named figure for the alert
-                alertFig = uifigure('Name', sprintf('%s Success', obj.AppName));
+                alertFig = uifigure('Name', sprintf('%s Success', obj.AppName),...
+                                    'Position', [figX, figY, figW, figH], ...
+                                    'WindowStyle', 'modal');
                 uialert(alertFig, 'Update completed successfully!', obj.AppName, 'Icon', 'success',...
                     'CloseFcn', @(src,event) delete(alertFig));
             catch
@@ -619,10 +617,18 @@ classdef GitHubUpdateManager < handle
         function showErrorDialog(obj, title, message)
             % Show error dialog
             try
+                screenSize = get(0, 'ScreenSize');
+                figW = 500;
+                figH = 400;
+                figX = (screenSize(3) - figW) / 2;
+                figY = (screenSize(4) - figH) / 2;
                 % Create named figure for the alert
-                alertFig = uifigure('Name', sprintf('%s Error', obj.AppName));
+                alertFig = uifigure('Name', sprintf('%s Error', obj.AppName),...
+                                    'Position', [figX, figY, figW, figH], ...
+                                    'WindowStyle', 'modal');
                 uialert(alertFig, message, title, 'Icon', 'error', ...
                     'CloseFcn', @(src,event) delete(alertFig));
+                uiwait(alertFig);
             catch
                 fprintf('❌ %s: %s\n', title, message);
             end
