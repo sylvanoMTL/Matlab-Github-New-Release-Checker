@@ -53,6 +53,7 @@ classdef GitHubUpdateManager < handle
                 addParameter(p, 'InstallMode', 'auto', @ischar);
                 addParameter(p, 'Interactive', true, @islogical);
                 addParameter(p, 'AppName', 'Application', @ischar);
+                addParameter(p, 'OverwriteFiles', true, @islogical);
                 
                 parse(p, varargin{:});
                 
@@ -63,6 +64,7 @@ classdef GitHubUpdateManager < handle
                 obj.InstallMode = string(p.Results.InstallMode);
                 obj.Interactive = p.Results.Interactive;
                 obj.AppName = string(p.Results.AppName);
+                obj.OverwriteFiles = p.Results.OverwriteFiles;
             end
         end
         
@@ -557,14 +559,7 @@ classdef GitHubUpdateManager < handle
         function dlg = showProgressDialog(obj, message)
             % Show progress dialog during download
             try
-                screenSize = get(0, 'ScreenSize');
-                figW = 500;
-                figH = 400;
-                figX = (screenSize(3) - figW) / 2;
-                figY = (screenSize(4) - figH) / 2;
-                obj.progressFig = uifigure('Name', 'Download progress','Visible','on',...
-                                            'Position', [figX, figY, figW, figH], ...
-                                            'WindowStyle', 'modal');
+                obj.progressFig = uifigure('Name', 'Download progress','Visible','on');
                 dlg = uiprogressdlg(obj.progressFig, 'Title', obj.AppName, ...
                                    'Message', message, ...
                                    'Indeterminate', 'on', ...
@@ -598,15 +593,8 @@ classdef GitHubUpdateManager < handle
         function showSuccessDialog(obj)
             % Show success message
             try
-                screenSize = get(0, 'ScreenSize');
-                figW = 500;
-                figH = 400;
-                figX = (screenSize(3) - figW) / 2;
-                figY = (screenSize(4) - figH) / 2;
                 % Create named figure for the alert
-                alertFig = uifigure('Name', sprintf('%s Success', obj.AppName),...
-                                    'Position', [figX, figY, figW, figH], ...
-                                    'WindowStyle', 'modal');
+                alertFig = uifigure('Name', sprintf('%s Success', obj.AppName));
                 uialert(alertFig, 'Update completed successfully!', obj.AppName, 'Icon', 'success',...
                     'CloseFcn', @(src,event) delete(alertFig));
             catch
@@ -617,18 +605,10 @@ classdef GitHubUpdateManager < handle
         function showErrorDialog(obj, title, message)
             % Show error dialog
             try
-                screenSize = get(0, 'ScreenSize');
-                figW = 500;
-                figH = 400;
-                figX = (screenSize(3) - figW) / 2;
-                figY = (screenSize(4) - figH) / 2;
                 % Create named figure for the alert
-                alertFig = uifigure('Name', sprintf('%s Error', obj.AppName),...
-                                    'Position', [figX, figY, figW, figH], ...
-                                    'WindowStyle', 'modal');
+                alertFig = uifigure('Name', sprintf('%s Error', obj.AppName));
                 uialert(alertFig, message, title, 'Icon', 'error', ...
                     'CloseFcn', @(src,event) delete(alertFig));
-                uiwait(alertFig);
             catch
                 fprintf('❌ %s: %s\n', title, message);
             end
