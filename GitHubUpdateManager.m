@@ -175,6 +175,7 @@ classdef GitHubUpdateManager < handle
         function cleanupProgress(obj)
             % Properly cleanup the progress figure if it exists
             if isprop(obj, 'progressFig') && ~isempty(obj.progressFig) && isvalid(obj.progressFig)
+                obj.OverwriteFiles = p.Results.OverwriteFiles;
                 try
                     close(obj.progressFig);
                     delete(obj.progressFig);
