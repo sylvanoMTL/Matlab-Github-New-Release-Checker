@@ -185,9 +185,7 @@ classdef GitHubUpdateManager < handle
                 end
             end
         end
-    end
-    
-    methods (Access = private)
+        
         function releaseInfo = getLatestRelease(obj)
             % Get latest release information from GitHub API
             apiUrl = sprintf('https://api.github.com/repos/%s/%s/releases/latest', obj.Owner, obj.Repository);
@@ -203,6 +201,7 @@ classdef GitHubUpdateManager < handle
             releaseInfo = webread(apiUrl, options);
         end
         
+
         function hasNewRelease = compareVersions(obj, currentVersion, latestVersion)
             % Compare version strings to determine if update is available
             % Remove 'v' prefix and clean whitespace
@@ -237,6 +236,13 @@ classdef GitHubUpdateManager < handle
             
             hasNewRelease = false; % Versions are equal
         end
+
+    end
+    
+    methods (Access = private)
+        
+        
+        
         
         function selectedAssets = selectAssets(obj, assets)
             % Filter and select assets based on criteria
